@@ -7,10 +7,13 @@
             border: 1px solid black;
         }
     </style>
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js"></script>
 </head>
 <body>
     <textarea id="inputText" rows="10" cols="50"></textarea>
-    <button onclick="parseInput()">Submit</button>
+    <button onclick="parseInput()">Parse</button>
+    <button onclick="download()">Download as XLSX</button>
     <table id="infoTable">
         <tr>
             <th>Book title</th>
@@ -22,33 +25,31 @@
 
     <script>
         function parseInput() {
-            var inputText = document.getElementById('inputText').value;
-            var lines = inputText.split('\n');
+            var input = document.getElementById('inputText').value.split('\n');
             var table = document.getElementById('infoTable');
-
-            // Clear the table
-            while (table.rows.length > 1) {
-                table.deleteRow(1);
-            }
-
-            // Skip the first line
-            for (var i = 1; i < lines.length; i++) {
-                var parts = lines[i].split('#');
-                var book = parts[0].replace(/"/g, '');
-                var author = parts[1].replace(/"/g, '');
-                var shelfAndCode = parts[2].split(';');
-                var shelf = shelfAndCode[0].replace(/"/g, '');
-                var code = shelfAndCode[1].replace(/"/g, '');
-
-                // Add a new row to the table
+            table.innerHTML = '<tr><th>Book title</th><th>Author</th><th>Store</th><th>Code</th></tr>'; // Clear table and add headers
+            for (var i = 1; i < input.length; i++) { // Skip first line
+                var parts = input[i].split('#');
                 var row = table.insertRow(-1);
-                row.insertCell(0).innerHTML = book;
-                row.insertCell(1).innerHTML = author;
-                row.insertCell(2).innerHTML = shelf;
-                row.insertCell(3).innerHTML = code;
+                for (var j = 0; j < parts.length; j++) {
+                    var cell = row.insertCell(-1);
+                    cell.innerHTML = parts[j].replace(/"/g, ''); // Remove quotation marks
+                }
             }
+        }
+
+        function download() {
+            var wb = XLSX.utils.table_to_book(document.getElementById('infoTable'), {sheet:"Sheet 1"});
+            var wbout = XLSX.write(wb, {bookType:'xlsx', bookSST:true, type: 'binary'});
+            saveAs(new Blob([s2ab(wbout)],{type:"application/octet-stream"}), 'info.xlsx');
+        }
+
+        function s2ab(s) {
+            var buf = new ArrayBuffer(s.length);
+            var view = new Uint8Array(buf);
+            for (var i=0; i<s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
         }
     </script>
 </body>
 </html>
-
