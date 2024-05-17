@@ -9,30 +9,44 @@
     </style>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+    <script type="text/javascript" charset="utf8" src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.js"></script>
 </head>
 <body>
     <textarea id="inputText" rows="10" cols="50"></textarea>
     <button onclick="parseInput()">Parse</button>
-    <button onclick="download()">Download as XLSX</button>
-    <table id="infoTable">
-        <tr>
-            <th>Book title</th>
-            <th>Author</th>
-            <th>Store</th>
-            <th>Code</th>
-        </tr>
+    <button onclick="download()">Download Shown as XLSX</button>
+    <button onclick="downloadAll()">Download All as XLSX</button>
+    <table id="infoTable" class="display">
+        <thead>
+            <tr>
+                <th>Book title</th>
+                <th>Author</th>
+                <th>Store</th>
+                <th>Code</th>
+            </tr>
+        </thead>
+        <tbody>
+        </tbody>
     </table>
 
     <script>
+        var table;
+
+        $(document).ready(function() {
+            table = $('#infoTable').DataTable({
+                "pageLength": -1,
+                "lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]]
+            });
+        });
+
         function parseInput() {
             var inputText = document.getElementById('inputText').value;
             var lines = inputText.split('\n');
-            var table = document.getElementById('infoTable');
 
             // Clear the table
-            while (table.rows.length > 1) {
-                table.deleteRow(1);
-            }
+            table.clear();
 
             // Skip the first line
             for (var i = 1; i < lines.length; i++) {
@@ -44,18 +58,26 @@
                 var code = shelfAndCode[1].replace(/"/g, '');
 
                 // Add a new row to the table
-                var row = table.insertRow(-1);
-                row.insertCell(0).innerHTML = book;
-                row.insertCell(1).innerHTML = author;
-                row.insertCell(2).innerHTML = shelf;
-                row.insertCell(3).innerHTML = code;
+                table.row.add([book, author, shelf, code]);
             }
+
+            // Redraw the table
+            table.draw();
         }
 
         function download() {
             var wb = XLSX.utils.table_to_book(document.getElementById('infoTable'), {sheet:"Sheet 1"});
             var wbout = XLSX.write(wb, {bookType:'xlsx', bookSST:true, type: 'binary'});
             saveAs(new Blob([s2ab(wbout)],{type:"application/octet-stream"}), 'info.xlsx');
+        }
+
+        function downloadAll() {
+            var oldPageLength = table.page.len();
+            table.page.len(-1).draw();
+            var wb = XLSX.utils.table_to_book(document.getElementById('infoTable'), {sheet:"Sheet 1"});
+            var wbout = XLSX.write(wb, {bookType:'xlsx', bookSST:true, type: 'binary'});
+            saveAs(new Blob([s2ab(wbout)],{type:"application/octet-stream"}), 'info_all.xlsx');
+            table.page.len(oldPageLength).draw();
         }
 
         function s2ab(s) {
